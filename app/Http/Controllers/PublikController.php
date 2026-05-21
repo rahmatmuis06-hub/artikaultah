@@ -14,7 +14,7 @@ class PublikController extends Controller
     /**
      * Tampilkan halaman utama publik birthday surprise.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Ambil semua pengaturan sebagai array key-value
         $pengaturanRaw = Pengaturan::all();
@@ -47,6 +47,11 @@ class PublikController extends Controller
             'tanggal_ultah' => $ultah->toISOString(),
             'sudah_ultah'   => $ultah->isToday(),
         ];
+
+        // Preview mode: akses ?preview=true untuk melihat tampilan ultah
+        if ($request->query('preview') === 'true') {
+            $countdown['sudah_ultah'] = true;
+        }
 
         return view('publik.index', compact(
             'pengaturan',

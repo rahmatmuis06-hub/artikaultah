@@ -2,11 +2,11 @@
 
 @section('content')
 
-{{-- Musik Latar (Opsional) --}}
+{{-- Musik Latar --}}
 @php
     $musikPath = $pengaturan['musik_latar'] ?? null;
     $musikUrl  = $musikPath ? \Illuminate\Support\Facades\Storage::url($musikPath) : null;
-    $adaMusik  = $musikUrl && ($pengaturan['putar_otomatis'] ?? 'false') == 'true';
+    $adaMusik  = $musikUrl ? true : false;
 @endphp
 @if($adaMusik)
 <audio id="bg-music" loop preload="auto">
@@ -34,9 +34,11 @@
             </div>
         </div>
 
-        {{-- Countdown (Jika belum ultah) --}}
+        {{-- ============================================================ --}}
+        {{-- SECTION 1: COUNTDOWN (Jika belum ultah) --}}
+        {{-- ============================================================ --}}
         @if(!$countdown['sudah_ultah'])
-        <div class="bg-white/80 backdrop-blur rounded-3xl p-6 shadow-xl border border-tema-4 animate-fade-up" style="animation-delay: 0.2s;">
+        <div id="section-countdown" class="bg-white/80 backdrop-blur rounded-3xl p-6 shadow-xl border border-tema-4 animate-fade-up" style="animation-delay: 0.2s;">
             <p class="text-sm text-gray-500 mb-4">Menghitung mundur menuju hari spesialmu...</p>
             <div class="flex justify-center gap-4 text-center" id="countdown-timer" data-target="{{ $countdown['tanggal_ultah'] }}">
                 <div class="w-16"><div class="text-3xl font-bold text-tema-2" id="cd-days">00</div><div class="text-xs text-gray-400">Hari</div></div>
@@ -45,123 +47,113 @@
                 <div class="w-16"><div class="text-3xl font-bold text-tema-2" id="cd-secs">00</div><div class="text-xs text-gray-400">Detik</div></div>
             </div>
         </div>
-        @else
-        {{-- Pesta (Jika hari ini) --}}
-        <div class="bg-white/80 backdrop-blur rounded-3xl p-8 shadow-xl border border-tema-4 animate-fade-up flex flex-col items-center justify-center" style="animation-delay: 0.2s;">
-            <div class="text-6xl mb-4 animate-bounce">🎂</div>
-            <h2 class="font-display text-2xl font-bold text-tema-3 mb-2">Hari Ini Hari Spesialmu!</h2>
-            <p class="text-gray-600">Selamat ulang tahun! Mari rayakan bersama 🎉</p>
-        </div>
         @endif
 
-        {{-- Pesan Utama --}}
-        <div class="mt-12 text-left animate-fade-up" style="animation-delay: 0.4s;">
-            <div class="relative bg-tema-4 rounded-3xl p-8 rounded-tl-none">
-                <svg class="absolute -top-4 -left-2 w-8 h-8 text-tema-4 transform rotate-180" fill="currentColor" viewBox="0 0 24 24"><path d="M24 0v24H0c13.255 0 24-10.745 24-24z"/></svg>
-                <p class="text-gray-700 leading-relaxed font-medium text-lg italic font-display">
-                    "{{ $pengaturan['pesan_utama'] ?? 'Semoga sehat selalu dan panjang umur.' }}"
-                </p>
-                <div class="mt-6 text-right">
-                    <p class="text-sm text-gray-500">Dari yang menyayangimu,</p>
-                    <p class="font-bold text-tema-3 text-xl font-display">{{ $pengaturan['nama_pengirim'] ?? '' }}</p>
-                </div>
-            </div>
+        {{-- ============================================================ --}}
+        {{-- SECTION 2: KUE + TOMBOL BUKA SURAT (Jika sudah ultah) --}}
+        {{-- ============================================================ --}}
+        @if($countdown['sudah_ultah'])
+        <div id="section-kue" class="bg-white/80 backdrop-blur rounded-3xl p-8 shadow-xl border border-tema-4 animate-fade-up flex flex-col items-center justify-center" style="animation-delay: 0.2s;">
+            <div class="text-7xl mb-6 animate-bounce">🎂</div>
+            <h2 class="font-display text-2xl font-bold text-tema-3 mb-2">Hari Ini Hari Spesialmu!</h2>
+            <p class="text-gray-600 mb-8">Selamat ulang tahun! Mari rayakan bersama 🎉</p>
+            
+            {{-- Tombol Pemicu Surat & Musik --}}
+            <button id="btn-buka-surat" 
+                class="btn-buka-surat px-8 py-3 bg-tema-2 text-white rounded-full font-semibold text-lg shadow-xl animate-glow-pulse flex items-center gap-2 hover:shadow-2xl">
+                <span>Buka Surat</span>
+                <span class="text-2xl">💌</span>
+            </button>
         </div>
 
-        {{-- Harapan & Doa --}}
-        @if($harapans->count() > 0)
-        <div class="mt-16 text-left">
-            <h3 class="font-display text-2xl font-bold text-gray-800 mb-6 text-center">Harapan & Doa</h3>
-            <div class="space-y-4">
-                @foreach($harapans as $index => $h)
-                <div class="flex gap-4 items-start animate-fade-up opacity-0" style="animation-delay: {{ 0.5 + ($index * 0.1) }}s; animation-fill-mode: forwards;">
-                    <div class="w-8 h-8 rounded-full bg-tema-2 text-white flex items-center justify-center flex-shrink-0 font-bold shadow-md shadow-pink-200">{{ $index + 1 }}</div>
-                    <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex-1">
-                        <p class="text-gray-700">{{ $h->isi }}</p>
+        {{-- ============================================================ --}}
+        {{-- SECTION 3: KERTAS SURAT (Awalnya hidden) --}}
+        {{-- ============================================================ --}}
+        <div id="section-surat" class="hidden mt-8">
+            <div class="paper">
+                <div class="paper-content">
+                    <p class="text-tema-3 font-display text-sm mb-2 opacity-70">Untuk {{ $pengaturan['nama_penerima'] ?? 'kamu' }} tersayang...</p>
+                    <p id="teks-surat" class="teks-surat"></p>
+                    
+                    {{-- Tanda tangan (muncul setelah TypeIt selesai) --}}
+                    <div id="tanda-tangan" class="tanda-tangan mt-6">
+                        <p class="text-sm text-gray-500 mb-1">Dari yang menyayangimu,</p>
+                        <p class="font-bold text-xl font-display" style="color: var(--c3);">{{ $pengaturan['nama_pengirim'] ?? '' }}</p>
+                        <span class="text-2xl">❤️</span>
                     </div>
                 </div>
-                @endforeach
             </div>
         </div>
-        @endif
 
-        {{-- Galeri Foto --}}
-        @if($fotos->count() > 0)
-        <div class="mt-16">
-            <h3 class="font-display text-2xl font-bold text-gray-800 mb-6">Momen Bersama</h3>
-            <div class="columns-2 gap-4 space-y-4">
-                @foreach($fotos as $f)
-                <div class="break-inside-avoid rounded-2xl overflow-hidden shadow-md">
-                    <img src="{{ $f->url }}" class="w-full h-auto" loading="lazy">
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
+        {{-- ============================================================ --}}
+        {{-- SECTION 4: HARAPAN + GALERI (Awalnya hidden) --}}
+        {{-- ============================================================ --}}
+        <div id="section-galeri" class="hidden">
 
-        {{-- Galeri Video --}}
-        @if($videos->count() > 0)
-        <div class="mt-16">
-            <h3 class="font-display text-2xl font-bold text-gray-800 mb-6">Video Spesial</h3>
-            <div class="space-y-6">
-                @foreach($videos as $v)
-                <div class="rounded-3xl overflow-hidden shadow-lg bg-black aspect-video relative">
-                    <video src="{{ $v->url }}" class="w-full h-full object-cover" controls preload="metadata"></video>
+            {{-- Harapan & Doa --}}
+            @if($harapans->count() > 0)
+            <div class="mt-16 text-left">
+                <h3 class="font-display text-2xl font-bold text-gray-800 mb-6 text-center">Harapan & Doa</h3>
+                <div class="space-y-4">
+                    @foreach($harapans as $index => $h)
+                    <div class="flex gap-4 items-start animate-fade-up opacity-0" style="animation-delay: {{ ($index * 0.15) }}s; animation-fill-mode: forwards;">
+                        <div class="w-8 h-8 rounded-full bg-tema-2 text-white flex items-center justify-center flex-shrink-0 font-bold shadow-md shadow-pink-200">{{ $index + 1 }}</div>
+                        <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex-1">
+                            <p class="text-gray-700">{{ $h->isi }}</p>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
-                @endforeach
             </div>
+            @endif
+
+            {{-- Galeri Foto --}}
+            @if($fotos->count() > 0)
+            <div class="mt-16">
+                <h3 class="font-display text-2xl font-bold text-gray-800 mb-6">Momen Bersama</h3>
+                <div class="columns-2 gap-4 space-y-4">
+                    @foreach($fotos as $f)
+                    <div class="break-inside-avoid rounded-2xl overflow-hidden shadow-md">
+                        <img src="{{ $f->url }}" class="w-full h-auto" loading="lazy">
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Galeri Video --}}
+            @if($videos->count() > 0)
+            <div class="mt-16">
+                <h3 class="font-display text-2xl font-bold text-gray-800 mb-6">Video Spesial</h3>
+                <div class="space-y-6">
+                    @foreach($videos as $v)
+                    <div class="rounded-3xl overflow-hidden shadow-lg bg-black aspect-video relative">
+                        <video src="{{ $v->url }}" class="w-full h-full object-cover" controls preload="metadata"></video>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
         </div>
         @endif
 
     </div>
 </div>
 
-{{-- Tombol Play Music --}}
+{{-- ============================================================ --}}
+{{-- Tombol Play/Pause Music (Pojok kanan bawah) --}}
+{{-- ============================================================ --}}
 @if($adaMusik)
-<button id="btn-music" class="fixed bottom-6 right-6 w-14 h-14 bg-tema-2 text-white rounded-full shadow-xl shadow-pink-300 flex items-center justify-center z-50 transition hover:scale-110">
-    <svg id="icon-play" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
-    <svg id="icon-pause" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+<button id="btn-music" class="fixed bottom-6 right-6 w-14 h-14 bg-tema-2 text-white rounded-full shadow-xl shadow-pink-300 flex items-center justify-center z-50 transition hover:scale-110 hidden">
+    <svg id="icon-play" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+    <svg id="icon-pause" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
 </button>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const audio = document.getElementById('bg-music');
-        const btn = document.getElementById('btn-music');
-        const iconPlay = document.getElementById('icon-play');
-        const iconPause = document.getElementById('icon-pause');
-        let isPlaying = false;
-
-        // Auto play saat interaksi pertama
-        const playAudio = () => {
-            if(!isPlaying) {
-                audio.play().then(() => {
-                    isPlaying = true;
-                    iconPlay.classList.add('hidden');
-                    iconPause.classList.remove('hidden');
-                }).catch(() => {});
-                document.removeEventListener('click', playAudio);
-            }
-        };
-        document.addEventListener('click', playAudio);
-
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (isPlaying) {
-                audio.pause();
-                iconPlay.classList.remove('hidden');
-                iconPause.classList.add('hidden');
-            } else {
-                audio.play();
-                iconPlay.classList.add('hidden');
-                iconPause.classList.remove('hidden');
-            }
-            isPlaying = !isPlaying;
-        });
-    });
-</script>
 @endif
 
-{{-- Script Countdown --}}
+{{-- ============================================================ --}}
+{{-- SCRIPT: Countdown Timer --}}
+{{-- ============================================================ --}}
 @if(!$countdown['sudah_ultah'])
 <script>
     const timerEl = document.getElementById('countdown-timer');
@@ -173,7 +165,7 @@
 
         if (distance < 0) {
             clearInterval(interval);
-            location.reload(); // Refresh halaman jika sudah ultah
+            location.reload();
             return;
         }
 
@@ -190,35 +182,177 @@
 </script>
 @endif
 
+{{-- ============================================================ --}}
+{{-- SCRIPT: Alur Interaktif (Kue → Surat → Galeri) --}}
+{{-- ============================================================ --}}
 @if($countdown['sudah_ultah'])
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script>
-    // Confetti saat halaman dimuat jika sudah ultah
-    window.addEventListener('load', () => {
-        const duration = 3000;
-        const end = Date.now() + duration;
+document.addEventListener('DOMContentLoaded', () => {
+
+    // ========== Elemen DOM ==========
+    const sectionKue    = document.getElementById('section-kue');
+    const sectionSurat  = document.getElementById('section-surat');
+    const sectionGaleri = document.getElementById('section-galeri');
+    const btnBukaSurat  = document.getElementById('btn-buka-surat');
+    const tandaTangan   = document.getElementById('tanda-tangan');
+
+    // Audio & tombol musik
+    const audio     = document.getElementById('bg-music');
+    const btnMusic  = document.getElementById('btn-music');
+    const iconPlay  = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    let isPlaying   = false;
+
+    // Pesan utama dari database
+    const pesanUtama = @json($pengaturan['pesan_utama'] ?? 'Semoga sehat selalu dan panjang umur. Semoga semua mimpi-mimpimu menjadi kenyataan.');
+
+    // ========== 1. Confetti saat halaman dimuat ==========
+    function luncurkanConfetti() {
+        const durasi = 3500;
+        const akhir = Date.now() + durasi;
 
         (function frame() {
             confetti({
-                particleCount: 5,
+                particleCount: 4,
                 angle: 60,
                 spread: 55,
                 origin: { x: 0 },
-                colors: ['#f472b6', '#a855f7', '#fbbf24']
+                colors: ['#f472b6', '#a855f7', '#fbbf24', '#f43f5e']
             });
             confetti({
-                particleCount: 5,
+                particleCount: 4,
                 angle: 120,
                 spread: 55,
                 origin: { x: 1 },
-                colors: ['#f472b6', '#a855f7', '#fbbf24']
+                colors: ['#f472b6', '#a855f7', '#fbbf24', '#34d399']
             });
 
-            if (Date.now() < end) {
+            if (Date.now() < akhir) {
                 requestAnimationFrame(frame);
             }
         }());
+    }
+
+    // Langsung confetti saat halaman load
+    luncurkanConfetti();
+
+    // ========== 2. Klik Tombol "Buka Surat" ==========
+    btnBukaSurat.addEventListener('click', () => {
+
+        // Putar musik
+        if (audio) {
+            audio.play().then(() => {
+                isPlaying = true;
+                // Tampilkan tombol play/pause
+                if (btnMusic) {
+                    btnMusic.classList.remove('hidden');
+                    iconPlay.classList.add('hidden');
+                    iconPause.classList.remove('hidden');
+                }
+            }).catch(() => {});
+        }
+
+        // Confetti tambahan saat buka surat
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#f472b6', '#fbbf24', '#a855f7', '#34d399', '#f43f5e']
+        });
+
+        // Fade out section kue
+        sectionKue.style.transition = 'all 0.6s ease';
+        sectionKue.style.opacity = '0';
+        sectionKue.style.transform = 'scale(0.95) translateY(-10px)';
+
+        setTimeout(() => {
+            sectionKue.style.display = 'none';
+
+            // Tampilkan section surat dengan animasi
+            sectionSurat.classList.remove('hidden');
+            sectionSurat.style.opacity = '0';
+            sectionSurat.style.transform = 'translateY(30px)';
+            
+            // Trigger reflow
+            sectionSurat.offsetHeight;
+            
+            sectionSurat.style.transition = 'all 0.8s ease';
+            sectionSurat.style.opacity = '1';
+            sectionSurat.style.transform = 'translateY(0)';
+
+            // Mulai TypeIt setelah kertas muncul
+            setTimeout(() => {
+                mulaiTypeIt();
+            }, 500);
+
+        }, 700);
     });
+
+    // ========== 3. Animasi TypeIt ==========
+    function mulaiTypeIt() {
+        new TypeIt('#teks-surat', {
+            speed: 55,
+            waitUntilVisible: true,
+            cursor: true,
+            afterComplete: function(instance) {
+                // Tampilkan tanda tangan
+                tandaTangan.classList.add('tampil');
+
+                // Setelah 2 detik, tampilkan section galeri
+                setTimeout(() => {
+                    tampilkanGaleri();
+                }, 2000);
+            }
+        })
+        .type(pesanUtama)
+        .go();
+    }
+
+    // ========== 4. Tampilkan Galeri ==========
+    function tampilkanGaleri() {
+        if (!sectionGaleri) return;
+
+        sectionGaleri.classList.remove('hidden');
+        sectionGaleri.style.opacity = '0';
+        sectionGaleri.style.transform = 'translateY(40px)';
+
+        // Trigger reflow
+        sectionGaleri.offsetHeight;
+
+        sectionGaleri.style.transition = 'all 1s ease';
+        sectionGaleri.style.opacity = '1';
+        sectionGaleri.style.transform = 'translateY(0)';
+
+        // Confetti perayaan galeri
+        setTimeout(() => {
+            confetti({
+                particleCount: 60,
+                spread: 100,
+                origin: { y: 0.7 },
+                colors: ['#f472b6', '#fbbf24', '#a855f7']
+            });
+        }, 500);
+    }
+
+    // ========== 5. Tombol Play/Pause Musik ==========
+    if (btnMusic) {
+        btnMusic.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isPlaying) {
+                audio.pause();
+                iconPlay.classList.remove('hidden');
+                iconPause.classList.add('hidden');
+            } else {
+                audio.play();
+                iconPlay.classList.add('hidden');
+                iconPause.classList.remove('hidden');
+            }
+            isPlaying = !isPlaying;
+        });
+    }
+
+});
 </script>
 @endif
 
