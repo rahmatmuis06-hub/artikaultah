@@ -37,7 +37,7 @@ class Foto extends Model
     protected function url(): Attribute
     {
         return Attribute::make(
-            get: fn () => Storage::url($this->path),
+            get: fn () => asset($this->path),
         );
     }
 }

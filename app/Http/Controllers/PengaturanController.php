@@ -38,7 +38,7 @@ class PengaturanController extends Controller
             'pesan_utama'    => 'required|string|max:500',
             'tema_warna'     => 'required|in:pink,purple,merah_gold,biru_mint',
             'putar_otomatis' => 'nullable',
-            'musik_latar'    => 'nullable|file|mimes:mp3,wav,ogg|max:15360',
+            'musik_latar'    => 'nullable|file|max:15360',
         ], [
             'tanggal_lahir.regex' => 'Format tanggal lahir harus dd/mm (contoh: 01/06).',
             'tema_warna.in'       => 'Tema warna tidak valid.',
@@ -49,14 +49,13 @@ class PengaturanController extends Controller
         // Simpan file musik jika diunggah
         if ($request->hasFile('musik_latar')) {
             $lama = Pengaturan::ambil('musik_latar');
-            if ($lama && Storage::exists($lama)) {
-                Storage::delete($lama);
+            if ($lama && file_exists(public_path($lama))) {
+                unlink(public_path($lama));
             }
-
             $file = $request->file('musik_latar');
             $namaUnik = 'musik_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('public/musik', $namaUnik);
-            Pengaturan::simpan('musik_latar', $path);
+            $file->move(public_path('musik'), $namaUnik);
+            Pengaturan::simpan('musik_latar', 'musik/' . $namaUnik);
         }
 
         // Simpan semua pengaturan ke tabel

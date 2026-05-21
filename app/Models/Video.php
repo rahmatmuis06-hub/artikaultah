@@ -37,7 +37,7 @@ class Video extends Model
     protected function url(): Attribute
     {
         return Attribute::make(
-            get: fn () => Storage::url($this->path),
+            get: fn () => asset($this->path),
         );
     }
 
@@ -49,7 +49,7 @@ class Video extends Model
     protected function thumbnailUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->thumbnail ? Storage::url($this->thumbnail) : null,
+            get: fn () => $this->thumbnail ? asset($this->thumbnail) : null,
         );
     }
 }

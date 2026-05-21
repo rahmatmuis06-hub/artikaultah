@@ -108,7 +108,7 @@
                                         <div>
                                             <p class="text-sm font-medium text-gray-700">Lagu aktif</p>
                                             <audio controls class="h-8 mt-1">
-                                                <source src="{{ \Illuminate\Support\Facades\Storage::url($pengaturan['musik_latar']) }}" type="audio/mpeg">
+                                                <source src="{{ asset($pengaturan['musik_latar']) }}" type="audio/mpeg">
                                             </audio>
                                         </div>
                                     </div>

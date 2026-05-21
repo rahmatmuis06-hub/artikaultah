@@ -5,7 +5,7 @@
 {{-- Musik Latar --}}
 @php
     $musikPath = $pengaturan['musik_latar'] ?? null;
-    $musikUrl  = $musikPath ? \Illuminate\Support\Facades\Storage::url($musikPath) : null;
+    $musikUrl  = $musikPath ? asset($musikPath) : null;
     $adaMusik  = $musikUrl ? true : false;
 @endphp
 @if($adaMusik)

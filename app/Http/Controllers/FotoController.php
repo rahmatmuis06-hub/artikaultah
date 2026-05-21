@@ -21,24 +21,23 @@ class FotoController extends Controller
         }
 
         $request->validate([
-            'foto'   => 'required|file|mimes:jpeg,jpg,png,webp|max:5120',
+            'foto'   => 'required|file|max:20480',
         ], [
             'foto.required' => 'File foto wajib diunggah.',
-            'foto.mimes'    => 'Format foto harus jpeg, png, atau webp.',
-            'foto.max'      => 'Ukuran foto maksimal 5MB.',
+            'foto.max'      => 'Ukuran foto maksimal 20MB.',
         ]);
 
         $file      = $request->file('foto');
         $namaFile  = $file->getClientOriginalName();
-        $namaUnik  = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $path      = $file->storeAs('public/fotos', $namaUnik);
+        $namaUnik  = 'foto_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('galeri/foto'), $namaUnik);
 
         // Tentukan urutan otomatis
         $urutan = Foto::withoutGlobalScopes()->max('urutan') + 1;
 
         $foto = Foto::create([
             'nama_file' => $namaFile,
-            'path'      => 'public/fotos/' . $namaUnik,
+            'path'      => 'galeri/foto/' . $namaUnik,
             'urutan'    => $urutan,
         ]);
 
@@ -59,9 +58,10 @@ class FotoController extends Controller
 
         $foto = Foto::withoutGlobalScopes()->findOrFail($id);
 
-        // Hapus file dari storage
-        if (Storage::exists($foto->path)) {
-            Storage::delete($foto->path);
+        // Hapus file fisik
+        $pathRelatif = str_replace(asset('/'), '', $foto->url);
+        if (file_exists(public_path($pathRelatif))) {
+            unlink(public_path($pathRelatif));
         }
 
         $foto->delete();

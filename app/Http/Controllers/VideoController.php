@@ -21,24 +21,23 @@ class VideoController extends Controller
         }
 
         $request->validate([
-            'video' => 'required|file|mimes:mp4,webm|max:51200',
+            'video' => 'required|file|max:102400',
         ], [
             'video.required' => 'File video wajib diunggah.',
-            'video.mimes'    => 'Format video harus mp4 atau webm.',
-            'video.max'      => 'Ukuran video maksimal 50MB.',
+            'video.max'      => 'Ukuran video maksimal 100MB.',
         ]);
 
         $file      = $request->file('video');
         $namaFile  = $file->getClientOriginalName();
-        $namaUnik  = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $path      = $file->storeAs('public/videos', $namaUnik);
+        $namaUnik  = 'video_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path('galeri/video'), $namaUnik);
 
         // Tentukan urutan otomatis
         $urutan = Video::withoutGlobalScopes()->max('urutan') + 1;
 
         $video = Video::create([
             'nama_file' => $namaFile,
-            'path'      => 'public/videos/' . $namaUnik,
+            'path'      => 'galeri/video/' . $namaUnik,
             'thumbnail' => null, // thumbnail otomatis tidak tersedia di PHP murni
             'urutan'    => $urutan,
         ]);
@@ -60,14 +59,18 @@ class VideoController extends Controller
 
         $video = Video::withoutGlobalScopes()->findOrFail($id);
 
-        // Hapus file video dari storage
-        if (Storage::exists($video->path)) {
-            Storage::delete($video->path);
+        // Hapus file video fisik
+        $pathRelatif = str_replace(asset('/'), '', $video->url);
+        if (file_exists(public_path($pathRelatif))) {
+            unlink(public_path($pathRelatif));
         }
 
         // Hapus thumbnail jika ada
-        if ($video->thumbnail && Storage::exists($video->thumbnail)) {
-            Storage::delete($video->thumbnail);
+        if ($video->thumbnail) {
+            $thumbRelatif = str_replace(asset('/'), '', $video->thumbnail_url);
+            if (file_exists(public_path($thumbRelatif))) {
+                unlink(public_path($thumbRelatif));
+            }
         }
 
         $video->delete();
