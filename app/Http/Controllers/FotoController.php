@@ -59,9 +59,8 @@ class FotoController extends Controller
         $foto = Foto::withoutGlobalScopes()->findOrFail($id);
 
         // Hapus file fisik
-        $pathRelatif = str_replace(asset('/'), '', $foto->url);
-        if (file_exists(public_path($pathRelatif))) {
-            unlink(public_path($pathRelatif));
+        if ($foto->path && file_exists(public_path($foto->path))) {
+            unlink(public_path($foto->path));
         }
 
         $foto->delete();

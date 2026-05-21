@@ -6,13 +6,11 @@ use App\Models\Video;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class VideoController extends Controller
 {
     /**
-     * Unggah video baru dan simpan ke storage.
+     * Unggah video baru dan simpan ke public.
      */
     public function unggah(Request $request): JsonResponse
     {
@@ -49,7 +47,7 @@ class VideoController extends Controller
     }
 
     /**
-     * Hapus video dari storage dan database.
+     * Hapus video dari public dan database.
      */
     public function hapus($id): JsonResponse
     {
@@ -60,17 +58,13 @@ class VideoController extends Controller
         $video = Video::withoutGlobalScopes()->findOrFail($id);
 
         // Hapus file video fisik
-        $pathRelatif = str_replace(asset('/'), '', $video->url);
-        if (file_exists(public_path($pathRelatif))) {
-            unlink(public_path($pathRelatif));
+        if ($video->path && file_exists(public_path($video->path))) {
+            unlink(public_path($video->path));
         }
 
         // Hapus thumbnail jika ada
-        if ($video->thumbnail) {
-            $thumbRelatif = str_replace(asset('/'), '', $video->thumbnail_url);
-            if (file_exists(public_path($thumbRelatif))) {
-                unlink(public_path($thumbRelatif));
-            }
+        if ($video->thumbnail && file_exists(public_path($video->thumbnail))) {
+            unlink(public_path($video->thumbnail));
         }
 
         $video->delete();
